@@ -75,7 +75,9 @@ function av(x,sz=44,cls=''){const L=x.look||x,[a,b]=BG[L.bg];return `<span class
 function bizAv(b,sz=40){return `<span class="biz-av" style="background:${b.col};width:${sz}px;height:${sz}px">${b.name.replace(/[^A-Za-z ]/g,'').split(' ').map(w=>w[0]).slice(0,2).join('')}</span>`;}
 function vt(c,o={}){const[a,b]=BG[c.look.bg];const brand=o.brand||BRANDS_FOR_DEMO[(+c.id.slice(1)+(o.i||0))%BRANDS_FOR_DEMO.length];const t=o.title||'';
  const act=o.still?'':`role="button" tabindex="0" aria-label="Play sample video: ${esc(t||c.name)}" data-act="play" data-c="${c.id}" data-t="${esc(t||'Sample promotional video')}" data-brand="${esc(brand)}"`;
- return `<div class="vt ${o.r||''} ${o.playing?'playing':''}" ${act} style="--a:${a};--b:${b}"><div class="vt-scene">${avSvg(c.look)}${phImg(c.id)}</div><span class="vt-prop">${esc(brand)}</span>${o.still?'':'<span class="vt-prev">PREVIEW</span>'}<span class="vt-dur">0:${String(o.dur||30).padStart(2,'0')}</span>${o.still?'':`<span class="vt-play">${ic('play')}</span>`}${t?`<div class="vt-cap">${esc(t)}${o.sub?`<small>${esc(o.sub)}</small>`:''}</div>`:''}<span class="vt-bar"><i></i></span>${o.fav?favBtn(c.id):''}</div>`;}
+ // brand label only on tiles that stand for a specific promo (profile cards are about the person, not one brand)
+ const showBrand=o.brand||t,cap=t&&!o.nocap;
+ return `<div class="vt ${o.r||''} ${o.playing?'playing':''} ${cap?'has-cap':''}" ${act} style="--a:${a};--b:${b}"><div class="vt-scene">${avSvg(c.look)}${phImg(c.id)}</div>${showBrand?`<span class="vt-prop">For ${esc(brand)}</span>`:''}<span class="vt-dur">${ic('play','i-fill')}0:${String(o.dur||30).padStart(2,'0')}</span>${o.still?'':`<span class="vt-play">${ic('play')}</span>`}${cap?`<div class="vt-cap">${esc(t)}${o.sub?`<small>${esc(o.sub)}</small>`:''}</div>`:''}<span class="vt-bar"><i></i></span>${o.fav?favBtn(c.id):''}</div>`;}
 const favBtn=id=>`<button class="fav ${S.favs.has(id)?'on':''}" data-act="fav" data-id="${id}" aria-label="Save to favorites">${ic('heart')}</button>`;
 
 /* ===== state ===== */
@@ -92,13 +94,13 @@ function userAv(sz=30){if(S.role==='creator')return av(C(ME_CRE),sz);if(S.role==
 
 /* ===== router ===== */
 let ROUTE=(location.hash||'#home').slice(1)||'home';
-function go(r){ROUTE=r;try{history.pushState(null,'','#'+r)}catch(e){}closeModal();render();window.scrollTo(0,0);}
+function go(r){ROUTE=r;try{history.pushState(null,'','#'+r)}catch(e){}closeModal();window.scrollTo({top:0,behavior:'instant'});render();}
 window.addEventListener('popstate',()=>{ROUTE=(location.hash||'#home').slice(1)||'home';render();});
 const PAGES={},POST={},ACT={},FORM={};
 function render(){const[p,...a]=ROUTE.split('~');const fn=PAGES[p]?p:'home';
  if(fn==='dash'&&a[0]&&S.role!==a[0]&&USERS[a[0]]){S.role=a[0];setTimeout(()=>toast(`Signed in as demo ${USERS[a[0]].label.toLowerCase()} · ${USERS[a[0]].email}`),50);}
  $('#view').innerHTML=PAGES[fn](...a);renderTop(fn,a);renderBnav(fn,a);
- $('#foot').hidden=['dash','signin','join'].includes(fn);if(POST[fn])POST[fn](...a);}
+ $('#foot').hidden=['dash','signin','join'].includes(fn);if(POST[fn])POST[fn](...a);MO.page(fn);guideSync();}
 
 /* ===== chrome ===== */
 function renderTop(p,a){const u=S.role;const links=[['explore','Explore Creators'],['categories','Categories'],['how','How It Works'],['business','For Businesses'],['creators','For Creators'],['campaigns','Campaigns']];
@@ -125,7 +127,7 @@ function creatorCard(c,i=0){return `<article class="ccard" data-go="creator~${c.
  <div class="ccard-body"><div class="name">${esc(c.name)}${vb()}</div><div class="meta">${c.cats[0]} <span aria-hidden="true">·</span> ${ic('pin')}${c.city}${c.avail?'':' <span class="pill p-mute">Fully booked</span>'}</div>
  <div class="desc">${esc(c.tag)}</div><div class="row" style="gap:12px">${rating(c.rating,c.revs)}<span class="small muted">${c.orders} orders completed</span></div>
  <div class="foot"><span class="price"><small>Starting at</small><span class="price-value">${tk(c.price)}</span></span><button class="btn btn-pri btn-sm" data-go="creator~${c.id}" aria-label="View ${esc(c.name)}'s profile">View profile ${ic('arrow')}</button></div></div></article>`;}
-function serviceCard(s,i=0){const c=C(s.c);return `<article class="ccard" data-go="creator~${c.id}~${s.pkg}">${vt(c,{r:'h',title:s.title,dur:pkgs(c)[s.pkg].dur,i:i+3})}
+function serviceCard(s,i=0){const c=C(s.c);return `<article class="ccard" data-go="creator~${c.id}~${s.pkg}">${vt(c,{r:'h',title:s.title,nocap:true,dur:pkgs(c)[s.pkg].dur,i:i+3})}
  <div class="ccard-body"><div class="row" style="gap:8px">${av(c,26)}<b class="small">${esc(c.name)}</b>${vb()}<span class="small muted" style="margin-left:auto">${s.plat}</span></div>
  <div style="font-weight:650;line-height:1.35;min-height:2.7em">${esc(s.title)}</div><div class="row" style="gap:14px">${rating(c.rating,c.revs)}<span class="small muted">${ic('clock')} ${s.days}-day delivery</span></div>
  <div class="foot"><span class="price"><small>Starting at</small><span class="price-value">${tk(s.price)}</span></span><button class="btn btn-pri btn-sm" data-go="order~${c.id}~${s.pkg}">Order ${ic('arrow')}</button></div></div></article>`;}
@@ -155,6 +157,7 @@ ACT.bg=(el,e)=>{if(e.target===el)closeModal();};ACT.close=closeModal;
 
 /* ===== HOME ===== */
 PAGES.home=()=>{const hero=['c1','c7','c5','c9','c4','c3'].map(C);
+ const hv=(c,brand,playing)=>vt(c,{r:'v',title:`${brand} promo`,nocap:true,brand,playing});
  return `<section class="hero"><div class="wrap hero-in"><div>
  <span class="eyebrow" style="color:var(--accent)">Promotional videos from Bangladesh's creators</span>
  <h1 style="margin-top:14px">Turn your brand into a story <span>people remember.</span></h1>
@@ -164,11 +167,11 @@ PAGES.home=()=>{const hero=['c1','c7','c5','c9','c4','c3'].map(C);
  <div class="hero-ctas"><button class="btn btn-light btn-lg" data-go="explore">Find a Creator ${ic('arrow')}</button><button class="btn btn-outline-light btn-lg" data-go="creators">Become a Creator</button></div>
  <div class="trustrow"><span>${ic('badge')}Verified creators</span><span>${ic('lock')}Payment held until you approve</span><span>${ic('shield')}Every video quality-checked</span></div></div>
  <div class="collage" aria-label="Sample promotional videos">
- <div class="col">${vt(hero[0],{r:'v',title:'Bhoj Kitchen',sub:'Ayesha Rahman',brand:'Bhoj Kitchen',playing:true})}${vt(hero[1],{r:'v',title:'Mishti Mukh',sub:'Tahsin Ara',brand:'Mishti Mukh'})}</div>
- <div class="col">${vt(hero[2],{r:'v',title:'DeshiCha',sub:'Samiul Khan',brand:'DeshiCha'})}${vt(hero[3],{r:'v',title:'Nakshi Threads',sub:'Lamia Islam',brand:'Nakshi Threads',playing:true})}</div>
- <div class="col">${vt(hero[4],{r:'v',title:'Sobuj Homes',sub:'Arif Mahmud',brand:'Sobuj Homes'})}${vt(hero[5],{r:'v',title:'Glow Lab',sub:'Nusrat Ahmed',brand:'Glow Lab'})}</div>
- <div class="float-card" style="left:-26px;top:16%"><span class="fi" style="background:#E5F5EC;color:#108A47">${ic('check')}</span><div>Video approved<small>Bhoj Kitchen · Order BP-24117</small></div></div>
- <div class="float-card" style="right:-12px;bottom:10%;animation-delay:-2.5s"><span class="fi" style="background:#ECF1FF;color:#2453FF">${ic('wallet')}</span><div>Creator receives ৳8,000<small>on a ৳10,000 order</small></div></div></div></div>
+ <div class="col">${hv(hero[0],'Bhoj Kitchen',1)}${hv(hero[1],'Mishti Mukh')}</div>
+ <div class="col">${hv(hero[2],'DeshiCha')}${hv(hero[3],'Nakshi Threads',1)}</div>
+ <div class="col">${hv(hero[4],'Sobuj Homes')}${hv(hero[5],'Glow Lab')}</div>
+ <div class="float-card" style="left:-34px;top:31%"><span class="fi" style="background:#E5F5EC;color:#108A47">${ic('check')}</span><div>Video approved<small>Bhoj Kitchen · Order BP-24117</small></div></div>
+ <div class="float-card" style="right:-22px;bottom:5%"><span class="fi" style="background:#ECF1FF;color:#2453FF">${ic('wallet')}</span><div>Creator receives ৳8,000<small>on a ৳10,000 order</small></div></div></div></div>
  <div class="statband"><div class="wrap">${[['186','Verified creators'],['742','Videos delivered'],['4.9 / 5','Average order rating'],['6 cities','Dhaka to Khulna']].map(([b,s])=>`<div><b>${b}</b><span>${s}</span></div>`).join('')}</div></div></section>
 
  <section class="sec"><div class="wrap"><div class="sec-head"><div><span class="eyebrow">Search</span><h2 style="margin-top:8px">Find the right face for your brand</h2><p class="muted">Filter by category, city, language and budget. Every creator lists fixed packages, so you know the price before you message anyone.</p></div></div>
@@ -183,7 +186,7 @@ PAGES.home=()=>{const hero=['c1','c7','c5','c9','c4','c3'].map(C);
  <div style="text-align:center;margin-top:28px"><button class="btn btn-ghost" data-go="explore">Browse all 20 creators ${ic('arrow')}</button></div></div></section>
 
  <section class="sec sec-alt"><div class="wrap"><div class="sec-head"><div><span class="eyebrow">Trending creators</span><h2 style="margin-top:8px">Faces brands are booking this week</h2></div><div class="row"><button class="btn btn-ghost btn-sm" data-go="explore">See all</button></div></div>
- <div class="hscroll" style="grid-auto-columns:minmax(230px,260px)">${['c1','c2','c3','c4','c5','c6','c15','c11'].map(C).map((c,i)=>`<div class="tcard" data-go="creator~${c.id}">${vt(c,{r:'v',i,fav:true})}<div class="tcard-info"><b>${esc(c.name)} ${vb()}</b><span>${c.cats.join(' · ')}</span><div class="row">${ic('star','i-fill')}${c.rating.toFixed(1)}<span style="opacity:.85">From ${tk(c.price)}</span></div></div></div>`).join('')}</div></div></section>
+ <div class="hscroll" style="grid-auto-columns:minmax(230px,260px)">${['c4','c15','c9','c11','c6','c14','c10','c19'].map(C).map((c,i)=>`<div class="tcard" data-go="creator~${c.id}">${vt(c,{r:'v',i,fav:true})}<div class="tcard-info"><b>${esc(c.name)} ${vb()}</b><span>${c.cats.join(' · ')}</span><div class="row">${ic('star','i-fill')}${c.rating.toFixed(1)}<span style="opacity:.85">From ${tk(c.price)}</span></div></div></div>`).join('')}</div></div></section>
 
  <section class="sec"><div class="wrap"><div class="sec-head"><div><span class="eyebrow">Categories</span><h2 style="margin-top:8px">Popular categories</h2></div><button class="btn btn-ghost btn-sm" data-go="categories">All categories</button></div>
  <div class="cats">${CATS.map(catTile).join('')}</div></div></section>
@@ -194,7 +197,7 @@ PAGES.home=()=>{const hero=['c1','c7','c5','c9','c4','c3'].map(C);
  <div class="hscroll" style="grid-auto-columns:minmax(180px,210px)">${[['c7','Kacchi platter review','Bhoj Kitchen','184K views'],['c14','Same-day delivery','Swift Courier','1.2M views'],['c13','Night-care routine','Glow Lab','322K views'],['c5','Office tea break','DeshiCha','908K views'],['c17','Sreemangal weekend','Ghuri Travels','211K views'],['c10','Send money in 3 taps','PayDhara','145K views'],['c9','Eid edit','Nakshi Threads','276K views'],['c16','30-day challenge','FitZone Gym','98K views']].map(([id,t,br,v],i)=>vt(C(id),{r:'v',title:t,sub:`${br} · ${v}`,brand:br,dur:[15,30,45][i%3]})).join('')}</div></div></section>
 
  <section class="sec"><div class="wrap"><div class="sec-head"><div><span class="eyebrow">Buy now</span><h2 style="margin-top:8px">Popular services</h2><p class="muted">Browse ready-to-order video services rather than people. Fixed scope, fixed price, fixed delivery time.</p></div><button class="btn btn-ghost btn-sm" data-act="exploreTab" data-tab="services">All 30 services</button></div>
- <div class="grid g4">${SERVICES.slice(0,8).map(serviceCard).join('')}</div></div></section>
+ <div class="grid g4">${SERVICES.slice(0,4).map(serviceCard).join('')}</div></div></section>
 
  <section class="sec sec-alt"><div class="wrap grid g2" style="gap:24px">
  <div class="card pad" style="padding:32px;display:flex;flex-direction:column;gap:18px"><span class="eyebrow">For businesses</span><h2>Your brand deserves a face people trust.</h2>
@@ -257,7 +260,7 @@ PAGES.explore=(cat)=>{if(cat&&CATS.find(x=>x.k===cat)){S.f.cat=cat;}const f=S.f;
 POST.explore=()=>renderResults();
 function renderResults(){const el=$('#results');if(!el)return;const list=filtered();
  if(S.f.tab==='services'){const ids=new Set(list.map(c=>c.id));const sv=SERVICES.filter(s=>ids.has(s.c)&&(!S.f.q||true));$('#count').textContent=`${sv.length} services`;el.innerHTML=sv.length?`<div class="grid g3">${sv.map(serviceCard).join('')}</div>`:emptyRes();return;}
- $('#count').textContent=`${list.length} creator${list.length===1?'':'s'} found`;el.innerHTML=list.length?`<div class="grid g3">${list.map(creatorCard).join('')}</div>`:emptyRes();}
+ $('#count').textContent=`${list.length} creator${list.length===1?'':'s'} found`;el.innerHTML=list.length?`<div class="grid g3">${list.map(creatorCard).join('')}</div>`:emptyRes();MO.list(el);}
 const emptyRes=()=>`<div class="empty"><h3 style="color:var(--ink)">No creators match these filters</h3><p style="margin:8px 0 16px">Try a wider budget or another city.</p><button class="btn btn-ghost btn-sm" data-act="clearF">Clear filters</button></div>`;
 ACT.fset=el=>{let v=el.dataset.v;S.f[el.dataset.k]=v==='true'?true:v==='false'?false:isNaN(+v)?v:+v;render();};
 ACT.clearF=()=>{Object.assign(S.f,{q:'',cat:'',city:'',lang:'',price:'',rating:0,days:'',aud:'',avail:false});if(ROUTE!=='explore')go('explore');else render();};

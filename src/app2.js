@@ -306,11 +306,3 @@ ACT.menu=()=>{const u=S.role;const L=(g,l,i)=>`<button class="dl" data-go="${g}"
  ${u?`<div class="row" style="padding:10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px">${userAv(40)}<div><b>${USERS[u].name}</b><div class="small muted">${USERS[u].email}</div></div></div>${L(`dash~${u}~${u==='admin'?'overview':'home'}`,'Dashboard','grid')}`:''}
  ${L('home','Home','home')}${L('explore','Explore Creators','compass')}${L('categories','Categories','grid')}${L('how','How It Works','refresh')}${L('business','For Businesses','building')}${L('creators','For Creators','film')}${L('campaigns','Campaigns','megaphone')}${L('trust','Trust & Safety','shield')}
  <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:16px">${u?`<button class="btn btn-ghost btn-block" data-act="signout">${ic('logout')}Sign out</button>`:`<button class="btn btn-ghost btn-block" data-go="signin">Sign In</button><button class="btn btn-pri btn-block" data-go="join">Get Started</button><button class="btn btn-ghost btn-block" data-go="creators">Become a Creator</button>`}</div></div></div>`;};
-
-/* ===== boot ===== */
-document.addEventListener('click',e=>{const el=e.target.closest('[data-act],[data-go]');if(!el)return;
- if(el.dataset.act){const fn=ACT[el.dataset.act];if(!fn)return;if(el.tagName==='BUTTON'&&el.getAttribute('type')!=='submit')e.preventDefault();fn(el,e);}
- else{e.preventDefault();go(el.dataset.go);}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('[role=button][data-act]')){e.preventDefault();e.target.click();}});
-document.addEventListener('submit',e=>{const f=e.target;if(!f.dataset||!f.dataset.form)return;e.preventDefault();FORM[f.dataset.form]&&FORM[f.dataset.form](f);});
-$('#foot').innerHTML=footer();render();
